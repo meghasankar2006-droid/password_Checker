@@ -1,406 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Password Threat Analyzer</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --font-mono: 'Courier New', Courier, monospace;
-      --font-sans: Arial, sans-serif;
-      --bg:        #0d1117;
-      --bg2:       #161b22;
-      --bg3:       #21262d;
-      --border:    #30363d;
-      --text:      #e6edf3;
-      --text2:     #8b949e;
-      --text3:     #484f58;
-      --green:     #1D9E75;
-      --green-light:#9FE1CB;
-      --green-dark: #0F6E56;
-      --red:       #E24B4A;
-      --orange:    #EF9F27;
-      --radius-md: 8px;
-      --radius-lg: 12px;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-sans);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
-    }
-
-    .wrap {
-      width: 100%;
-      max-width: 640px;
-    }
-
-    .header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-
-    .badge {
-      font-size: 11px; padding: 3px 8px; border-radius: 4px;
-      background: var(--green-dark); color: var(--green-light);
-      font-family: var(--font-mono);
-    }
-
-    .title { font-size: 20px; font-weight: 500; color: var(--text); }
-
-    .sub {
-      font-size: 13px; color: var(--green); margin-bottom: 1.5rem;
-      font-family: var(--font-mono);
-    }
-
-    .terminal {
-      background: var(--bg2); border: 0.5px solid var(--green);
-      border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem;
-    }
-
-    .term-bar {
-      display: flex; align-items: center; gap: 6px;
-      margin-bottom: 12px; padding-bottom: 10px;
-      border-bottom: 0.5px solid var(--border);
-    }
-
-    .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .dot-r { background: var(--red); }
-    .dot-y { background: var(--orange); }
-    .dot-g { background: var(--green); }
-
-    .term-label {
-      font-size: 12px; color: var(--text3); margin-left: 4px;
-      font-family: var(--font-mono);
-    }
-
-    .prompt-row { display: flex; align-items: center; gap: 8px; }
-
-    .prompt-sym {
-      font-size: 14px; color: var(--green);
-      font-family: var(--font-mono); white-space: nowrap;
-    }
-
-    .pwd-input {
-      flex: 1; background: transparent; border: none; outline: none;
-      font-size: 15px; font-family: var(--font-mono);
-      color: var(--text); letter-spacing: 2px;
-    }
-
-    .pwd-input::placeholder { color: var(--text3); letter-spacing: 0; }
-
-    .eye-btn {
-      background: none; border: 0.5px solid var(--border);
-      border-radius: 4px; padding: 4px 10px; font-size: 12px;
-      color: var(--green); cursor: pointer; font-family: var(--font-mono);
-      white-space: nowrap; transition: background 0.2s;
-    }
-    .eye-btn:hover { background: rgba(29,158,117,0.1); }
-
-    .scan-row {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .scan-label { font-size: 12px; color: var(--text2); font-family: var(--font-mono); }
-
-    .threat-level { font-size: 13px; font-weight: 500; font-family: var(--font-mono); }
-
-    .meter-track {
-      height: 8px; border-radius: 4px; background: var(--bg3);
-      border: 0.5px solid var(--border); overflow: hidden; margin-bottom: 4px;
-    }
-
-    .meter-fill {
-      height: 100%; border-radius: 4px;
-      transition: width 0.4s ease, background 0.4s ease;
-    }
-
-    .meter-labels {
-      display: flex; justify-content: space-between;
-      font-size: 10px; color: var(--text3);
-      font-family: var(--font-mono); margin-bottom: 1rem;
-    }
-
-    .grid-checks {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 6px; margin-bottom: 1rem;
-    }
-
-    .chk {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 12px; color: var(--text2);
-      background: var(--bg2); border: 0.5px solid var(--border);
-      border-radius: var(--radius-md); padding: 7px 10px;
-      font-family: var(--font-mono);
-    }
-
-    .chk.pass { border-color: var(--green); color: var(--green-dark); }
-    .chk.pass .ci { color: var(--green); }
-    .chk.fail .ci { color: var(--red); }
-    .ci { font-size: 13px; font-weight: 500; min-width: 14px; }
-
-    .stats-grid {
-      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px; margin-bottom: 1rem;
-    }
-
-    .stat {
-      background: var(--bg2); border: 0.5px solid var(--border);
-      border-radius: var(--radius-md); padding: 10px 12px;
-    }
-
-    .stat-lbl {
-      font-size: 10px; color: var(--text3); font-family: var(--font-mono);
-      margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-
-    .stat-val { font-size: 18px; font-weight: 500; color: var(--text); font-family: var(--font-mono); }
-
-    .intel-box {
-      background: var(--bg2); border: 0.5px solid var(--border);
-      border-radius: var(--radius-md); padding: 10px 14px;
-    }
-
-    .intel-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 5px 0; border-bottom: 0.5px solid var(--border);
-      font-size: 12px; font-family: var(--font-mono);
-    }
-
-    .intel-row:last-child { border-bottom: none; }
-    .intel-key { color: var(--text3); }
-    .intel-val { color: var(--text); font-weight: 500; }
-    .intel-val.danger { color: var(--red); }
-    .intel-val.warn   { color: var(--orange); }
-    .intel-val.ok     { color: var(--green); }
-
-    .tip-line {
-      margin-top: 1rem; font-size: 12px; color: var(--green);
-      font-family: var(--font-mono); border-left: 2px solid var(--green);
-      padding-left: 10px; line-height: 1.6;
-    }
-
-    .cursor {
-      display: inline-block; width: 8px; height: 14px;
-      background: var(--green); animation: blink 1s step-end infinite;
-      vertical-align: middle; margin-left: 2px;
-    }
-
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
-  </style>
+    <title>Password Strength Checker</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            margin-top: 100px;
+        }
+        input {
+            padding: 10px;
+            width: 200px;
+        }
+        #result {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="header">
-    <span class="badge">SEC-TOOL v2.4</span>
-    <span class="title">Password Threat Analyzer</span>
-  </div>
-  <div class="sub">// OPSEC module — real-time credential vulnerability scanner</div>
 
-  <div class="terminal">
-    <div class="term-bar">
-      <div class="dot dot-r"></div>
-      <div class="dot dot-y"></div>
-      <div class="dot dot-g"></div>
-      <span class="term-label">analyst@cyberlab:~$ passwd-audit --live</span>
-    </div>
-    <div class="prompt-row">
-      <span class="prompt-sym">root@sec &gt;&nbsp;</span>
-      <input class="pwd-input" type="password" id="pwd"
-             placeholder="enter target credential..." autocomplete="off" spellcheck="false" />
-      <button class="eye-btn" id="eyeBtn" onclick="toggleVis()">[ REVEAL ]</button>
-    </div>
-  </div>
+    <h2>Password Strength Checker</h2>
 
-  <div class="scan-row">
-    <span class="scan-label">// SCANNING... threat level:</span>
-    <span class="threat-level" id="threatLabel" style="color:var(--text3);">
-      AWAITING INPUT<span class="cursor"></span>
-    </span>
-  </div>
+    <input type="password" id="password" placeholder="Enter password" onkeyup="checkPassword()">
 
-  <div class="meter-track">
-    <div class="meter-fill" id="meter" style="width:0%;background:#484f58;"></div>
-  </div>
-  <div class="meter-labels">
-    <span>CRITICAL</span><span>HIGH</span><span>MEDIUM</span><span>LOW</span><span>SECURE</span>
-  </div>
+    <div id="result"></div>
 
-  <div class="grid-checks" id="checksGrid">
-    <div class="chk fail" id="c0"><span class="ci" id="i0">✗</span>Min 12 chars length</div>
-    <div class="chk fail" id="c1"><span class="ci" id="i1">✗</span>Uppercase A–Z present</div>
-    <div class="chk fail" id="c2"><span class="ci" id="i2">✗</span>Lowercase a–z present</div>
-    <div class="chk fail" id="c3"><span class="ci" id="i3">✗</span>Numeric 0–9 present</div>
-    <div class="chk fail" id="c4"><span class="ci" id="i4">✗</span>Special chars !@#$%</div>
-    <div class="chk fail" id="c5"><span class="ci" id="i5">✗</span>No repeating patterns</div>
-    <div class="chk fail" id="c6"><span class="ci" id="i6">✗</span>Not a dictionary word</div>
-    <div class="chk fail" id="c7"><span class="ci" id="i7">✗</span>16+ chars (elite tier)</div>
-  </div>
+    <script>
+        function checkPassword() {
+            let pass = document.getElementById("password").value;
+            let strength = "";
 
-  <div class="stats-grid">
-    <div class="stat"><div class="stat-lbl">length</div><div class="stat-val" id="s0">0</div></div>
-    <div class="stat"><div class="stat-lbl">entropy</div><div class="stat-val" id="s1">0 <span style="font-size:11px;">bits</span></div></div>
-    <div class="stat"><div class="stat-lbl">charset</div><div class="stat-val" id="s2">0</div></div>
-    <div class="stat"><div class="stat-lbl">score</div><div class="stat-val" id="s3">0/8</div></div>
-  </div>
+            if (pass.length < 4) {
+                strength = "Weak";
+            }
+            else if (pass.length < 8) {
+                strength = "Medium";
+            }
+            else {
+                strength = "Strong";
+            }
 
-  <div class="intel-box">
-    <div class="intel-row"><span class="intel-key">// attack vector</span><span class="intel-val" id="i-atk">—</span></div>
-    <div class="intel-row"><span class="intel-key">// crack time (10B hash/s)</span><span class="intel-val" id="i-crack">—</span></div>
-    <div class="intel-row"><span class="intel-key">// brute-force combos</span><span class="intel-val" id="i-combo">—</span></div>
-    <div class="intel-row"><span class="intel-key">// recommended action</span><span class="intel-val" id="i-rec">—</span></div>
-  </div>
+            document.getElementById("result").innerHTML = strength;
+        }
+    </script>
 
-  <div class="tip-line" id="tipLine">// awaiting credential input to begin analysis...</div>
-</div>
-
-<script>
-const COMMON = ['password','123456','qwerty','letmein','monkey','dragon','master','abc123',
-  'admin','welcome','login','pass','test','user','root','1234','12345','superman','batman',
-  'iloveyou','sunshine','princess','shadow','football','soccer','baseball','michael',
-  'jessica','charlie','donald','access','hello','ninja'];
-
-let visible = false;
-
-function toggleVis() {
-  visible = !visible;
-  document.getElementById('pwd').type = visible ? 'text' : 'password';
-  document.getElementById('eyeBtn').textContent = visible ? '[ HIDE ]' : '[ REVEAL ]';
-}
-
-function setCheck(idx, pass) {
-  document.getElementById('c' + idx).className = 'chk ' + (pass ? 'pass' : 'fail');
-  document.getElementById('i' + idx).textContent = pass ? '✓' : '✗';
-}
-
-function fmtCombos(n) {
-  if (n === Infinity || n > 1e30) return '>10^30';
-  if (n > 1e24) return (n/1e24).toFixed(1)+'Y';
-  if (n > 1e21) return (n/1e21).toFixed(1)+'Z';
-  if (n > 1e18) return (n/1e18).toFixed(1)+'E';
-  if (n > 1e15) return (n/1e15).toFixed(1)+'P';
-  if (n > 1e12) return (n/1e12).toFixed(1)+'T';
-  if (n > 1e9)  return (n/1e9).toFixed(1)+'B';
-  if (n > 1e6)  return (n/1e6).toFixed(1)+'M';
-  return Math.round(n).toLocaleString();
-}
-
-function crackTime(entropy) {
-  const rate = 1e10;
-  const combos = Math.pow(2, entropy);
-  const sec = (combos / 2) / rate;
-  if (sec < 0.001)     return { t: '< 1 ms',                   cls: 'danger' };
-  if (sec < 1)         return { t: (sec*1000).toFixed(0)+' ms', cls: 'danger' };
-  if (sec < 60)        return { t: Math.round(sec)+' sec',      cls: 'danger' };
-  if (sec < 3600)      return { t: Math.round(sec/60)+' min',   cls: 'warn'   };
-  if (sec < 86400)     return { t: Math.round(sec/3600)+' hrs', cls: 'warn'   };
-  if (sec < 2592000)   return { t: Math.round(sec/86400)+' days',    cls: 'ok' };
-  if (sec < 31536000)  return { t: Math.round(sec/2592000)+' months',cls: 'ok' };
-  if (sec < 3.15e10)   return { t: Math.round(sec/31536000)+' yrs',  cls: 'ok' };
-  return { t: 'centuries+', cls: 'ok' };
-}
-
-function analyze() {
-  const val    = document.getElementById('pwd').value;
-  const len    = val.length;
-  const hasUp  = /[A-Z]/.test(val);
-  const hasLow = /[a-z]/.test(val);
-  const hasNum = /[0-9]/.test(val);
-  const hasSym = /[^A-Za-z0-9]/.test(val);
-  const hasLen = len >= 12;
-  const noRep  = len > 0 && !/(.).*\1\1/.test(val);
-  const notDict= len > 0 && !COMMON.includes(val.toLowerCase());
-  const elite  = len >= 16;
-
-  setCheck(0,hasLen); setCheck(1,hasUp);  setCheck(2,hasLow);
-  setCheck(3,hasNum); setCheck(4,hasSym); setCheck(5,noRep);
-  setCheck(6,notDict);setCheck(7,elite);
-
-  let cs = 0;
-  if (hasLow) cs += 26; if (hasUp) cs += 26;
-  if (hasNum) cs += 10; if (hasSym) cs += 32;
-  if (cs === 0) cs = 1;
-
-  const entropy = len > 0 ? Math.round(len * Math.log2(cs)) : 0;
-  const combos  = Math.pow(cs, len);
-  const score   = [hasLen,hasUp,hasLow,hasNum,hasSym,noRep,notDict,elite].filter(Boolean).length;
-
-  document.getElementById('s0').textContent = len;
-  document.getElementById('s1').innerHTML   = entropy + ' <span style="font-size:11px;">bits</span>';
-  document.getElementById('s2').textContent = cs;
-  document.getElementById('s3').textContent = score + '/8';
-
-  if (len === 0) {
-    document.getElementById('meter').style.width      = '0%';
-    document.getElementById('meter').style.background = '#484f58';
-    document.getElementById('threatLabel').innerHTML  = 'AWAITING INPUT<span class="cursor"></span>';
-    document.getElementById('threatLabel').style.color= 'var(--text3)';
-    ['i-atk','i-crack','i-rec'].forEach(id => {
-      document.getElementById(id).textContent = '—';
-      document.getElementById(id).className   = 'intel-val';
-    });
-    document.getElementById('i-combo').textContent = '—';
-    document.getElementById('tipLine').textContent  = '// awaiting credential input to begin analysis...';
-    return;
-  }
-
-  const levels = [
-    { t:'CRITICAL',  c:'#E24B4A', pct:10  },
-    { t:'CRITICAL',  c:'#E24B4A', pct:20  },
-    { t:'HIGH RISK', c:'#D85A30', pct:32  },
-    { t:'HIGH RISK', c:'#EF9F27', pct:46  },
-    { t:'MEDIUM',    c:'#EF9F27', pct:60  },
-    { t:'LOW RISK',  c:'#97C459', pct:74  },
-    { t:'SECURE',    c:'#1D9E75', pct:86  },
-    { t:'HARDENED',  c:'#0F6E56', pct:100 },
-  ];
-  const lv = levels[Math.min(score, 7)];
-  document.getElementById('meter').style.width      = lv.pct + '%';
-  document.getElementById('meter').style.background = lv.c;
-  document.getElementById('threatLabel').innerHTML  = lv.t + '<span class="cursor"></span>';
-  document.getElementById('threatLabel').style.color= lv.c;
-
-  const atks    = ['Instant rainbow table hit','Brute-force (<1s)','Fast dictionary attack',
-                   'Hybrid attack feasible','Targeted brute-force','Offline attack: days',
-                   'Offline attack: years','Computationally infeasible'];
-  const atkCls  = ['danger','danger','danger','warn','warn','ok','ok','ok'];
-  const idx     = Math.min(score, 7);
-
-  document.getElementById('i-atk').textContent = atks[idx];
-  document.getElementById('i-atk').className   = 'intel-val ' + atkCls[idx];
-
-  const ct = crackTime(entropy);
-  document.getElementById('i-crack').textContent = ct.t;
-  document.getElementById('i-crack').className   = 'intel-val ' + ct.cls;
-  document.getElementById('i-combo').textContent = fmtCombos(combos) + ' combinations';
-
-  const recs    = ['DISCARD — use password manager NOW','REPLACE immediately',
-                   'UPGRADE — add symbols & length','HARDEN — increase to 16+ chars',
-                   'IMPROVE — add more character types','ACCEPTABLE — minor hardening advised',
-                   'STRONG — store in password vault','ELITE — meets red team standards'];
-  const recCls  = ['danger','danger','danger','warn','warn','ok','ok','ok'];
-  document.getElementById('i-rec').textContent = recs[idx];
-  document.getElementById('i-rec').className   = 'intel-val ' + recCls[idx];
-
-  const tips = [
-    '// CRITICAL: This credential will be cracked instantly. Use a password manager to generate a random 20-char passphrase.',
-    '// HIGH: Increase length to 16+ and mix all 4 character classes to resist brute-force attacks.',
-    '// ALERT: Dictionary-based or hybrid attacks will crack this. Avoid real words and predictable patterns.',
-    '// WARNING: Add special characters (!@#$%) and ensure no repeating sequences.',
-    '// MODERATE: Length or complexity still lacking. Aim for entropy > 60 bits for production use.',
-    '// INFO: Decent baseline — consider extending to 20+ chars for high-value account protection.',
-    '// GOOD: Strong credential. Ensure it is unique (never reused) and stored in an encrypted vault.',
-    '// HARDENED: Meets elite OPSEC standards. Zero reuse. Rotate every 90 days for critical systems.',
-  ];
-  document.getElementById('tipLine').textContent = tips[idx];
-}
-
-document.getElementById('pwd').addEventListener('input', analyze);
-</script>
 </body>
 </html>
